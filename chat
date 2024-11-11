@@ -1,0 +1,219 @@
+//FRONTEND CODE
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Analysis Tool</title>
+    <style>
+        /* General Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* Dark Theme Styling */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #121212; /* Black background */
+            color: #f1f1f1; /* Light text color */
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 12px;
+            background-color: #1e1e1e; /* Dark gray container */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        h2 {
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        
+        /* Form Styling */
+        .input-group {
+            margin-top: 15px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            font-size: 1rem;
+            color: #f1f1f1;
+            margin-bottom: 5px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background-color: #333;
+            color: #f1f1f1;
+            margin-bottom: 15px;
+        }
+        
+        /* Button Styling */
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            color: #121212;
+            background-color: #f1f1f1;
+            cursor: pointer;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #ccc; /* Lighter gray on hover */
+        }
+        
+        /* Result Styling */
+        .result {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #333; /* Darker gray for result area */
+            color: #f1f1f1;
+            border: 1px solid #444;
+            font-size: 0.9rem;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* Icon Styling */
+        .icon {
+            width: 20px;
+            height: 20px;
+            filter: invert(1); /* Invert icon color for dark background */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>ChatGPT Analysis Tool</h2>
+        
+        <!-- Input Fields -->
+        <div class="input-group">
+            <label for="user_id">Enter User ID:</label>
+            <input type="text" id="user_id" placeholder="Enter user ID...">
+        </div>
+        
+        <div class="input-group">
+            <label for="message">Enter Message for Analysis:</label>
+            <input type="text" id="message" placeholder="Type a message here...">
+        </div>
+        
+        <!-- Buttons with Icons -->
+        <button onclick="analyzeMessage()">
+            <img src="https://img.icons8.com/ios-filled/50/ffffff/ai.png" class="icon" alt="Analyze Icon"> Analyze Message
+        </button>
+        
+        <button onclick="saveAnalysis()">
+            <img src="https://img.icons8.com/ios-filled/50/ffffff/save.png" class="icon" alt="Save Icon"> Save Analysis
+        </button>
+        
+        <button onclick="getHistory()">
+            <img src="https://img.icons8.com/ios-filled/50/ffffff/history.png" class="icon" alt="History Icon"> Get Analysis History
+        </button>
+        
+        <!-- Result Display -->
+        <div class="result" id="result">
+            <h3>Results</h3>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'https://your-replit-url.repl.co';  // Replace with your Replit project URL
+
+        async function analyzeMessage() {
+            const message = document.getElementById('message').value;
+            if (!message) {
+                alert("Please enter a message for analysis.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: 'user123', message })
+                });
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                displayError(error);
+            }
+        }
+
+        async function saveAnalysis() {
+            const user_id = document.getElementById('user_id').value;
+            const message = document.getElementById('message').value;
+            const message_length = message.length;
+            const timestamp = new Date().toISOString();
+
+            if (!user_id || !message) {
+                alert("Please provide both user ID and message.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/save-analysis`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id, message, message_length, timestamp })
+                });
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                displayError(error);
+            }
+        }
+
+        async function getHistory() {
+            const user_id = document.getElementById('user_id').value;
+            if (!user_id) {
+                alert("Please enter a user ID.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/get-history?user_id=${user_id}`);
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                displayError(error);
+            }
+        }
+
+        function displayResult(data) {
+            const output = document.getElementById('output');
+            output.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        function displayError(error) {
+            const output = document.getElementById('output');
+            output.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        }
+    </script>
+</body>
+</html>
