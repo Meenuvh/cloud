@@ -1,1 +1,19 @@
+import requests
+import random
+import time
 
+# Replace with your ThingSpeak channel ID and API key
+CHANNEL_ID = '2742922'
+WRITE_API_KEY = 'OCZ948DYFJDATDZX'
+
+url = f'https://api.thingspeak.com/update?api_key={WRITE_API_KEY}'
+
+while True:
+    # Simulate a heart rate value between 60 and 100 BPM
+    heart_rate = random.randint(60, 100)
+    
+    # Send data to ThingSpeak
+    response = requests.get(url + f'&field1={heart_rate}')
+    print(f'Sent Heart Rate: {heart_rate}, Response: {response.status_code}')
+    
+    time.sleep(15)  # Send data every 15 seconds
