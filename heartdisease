@@ -1,0 +1,96 @@
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (
+    classification_report, confusion_matrix,
+    log_loss, cohen_kappa_score
+)
+from tensorflow.keras.callbacks import EarlyStopping
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+
+df = pd.read_excel("C:/Users/meenu/Downloads/heartsoft.xlsx", engine="openpyxl")
+
+# Inject class imbalance (undersample class 0)
+df_0 = df[df['target'] == 0]
+df_1 = df[df['target'] == 1]
+df_0_imbalanced = df_0.sample(n=300, random_state=42)
+df = pd.concat([df_0_imbalanced, df_1], axis=0).sample(frac=1, random_state=42).reset_index(drop=True)
+
+print("\nClass Distribution:")
+print(df["target"].value_counts())
+
+X = df.drop(columns=["target"])
+y = df["target"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+joblib.dump(scaler, "scaler.pkl")
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(16, activation='relu', input_shape=(X_train.shape[1],)),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Dense(8, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+
+early_stop = EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True, verbose=1)
+
+#Train Model
+history = model.fit(
+    X_train_scaled, y_train,
+    validation_data=(X_test_scaled, y_test),
+    epochs=100,
+    batch_size=10,
+    callbacks=[early_stop],
+    verbose=1
+)
+
+model.save("heart_disease_model.h5")
+print(" Model and scaler saved successfully!")
+
+y_pred_probs = model.predict(X_test_scaled).ravel()  
+y_pred = (y_pred_probs > 0.5).astype("int32")
+
+print("\n📊 Confusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+
+plt.figure(figsize=(6, 4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+plt.title("Confusion Matrix Heatmap")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.tight_layout()
+plt.show()
+
+print("\n📝 Classification Report:")
+print(classification_report(y_test, y_pred, digits=2))
+
+loss = log_loss(y_test, y_pred_probs)
+plt.figure(figsize=(5, 4))
+plt.bar(['Log Loss'], [loss], color='crimson')
+plt.title("Log Loss")
+plt.ylabel("Loss")
+plt.ylim(0, 1)
+plt.text(0, loss + 0.02, f"{loss:.4f}", ha='center')
+plt.tight_layout()
+plt.show()
+
+kappa = cohen_kappa_score(y_test, y_pred)
+plt.figure(figsize=(5, 4))
+plt.bar(["Cohen's Kappa"], [kappa], color='mediumseagreen')
+plt.title("Cohen’s Kappa Score")
+plt.ylabel("Score")
+plt.ylim(0, 1)
+plt.text(0, kappa + 0.02, f"{kappa:.4f}", ha='center')
+plt.tight_layout()
+plt.show()
