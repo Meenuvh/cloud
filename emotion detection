@@ -1,0 +1,113 @@
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from tensorflow.keras import layers, models
+
+# ================================
+# 1. Load Dataset
+# ================================
+
+train_dir = "C:/Users/meenu/Downloads/archive(4)/train"
+test_dir = "C:/Users/meenu/Downloads/archive(4)/test"
+
+# Load training and validation datasets
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    train_dir,
+    image_size=(48, 48),
+    color_mode="grayscale",
+    batch_size=32,
+    validation_split=0.2,
+    subset="training",
+    seed=42
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    train_dir,
+    image_size=(48, 48),
+    color_mode="grayscale",
+    batch_size=32,
+    validation_split=0.2,
+    subset="validation",
+    seed=42
+)
+
+# Load test dataset
+test_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    test_dir,
+    image_size=(48, 48),
+    color_mode="grayscale",
+    batch_size=32
+)
+
+# Get class names
+class_names = train_ds.class_names
+print("Classes:", class_names)
+
+# ================================
+# 2. Normalize Data
+# ================================
+normalization_layer = layers.Rescaling(1./255)
+
+train_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y))
+test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
+
+# ================================
+# 3. Build Model
+# ================================
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(48, 48, 1)),
+    layers.MaxPooling2D((2, 2)),
+    
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    
+    layers.Conv2D(128, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dropout(0.5),
+    layers.Dense(len(class_names), activation='softmax')
+])
+
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+model.summary()
+
+# ================================
+# 4. Train Model
+# ================================
+history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=10
+)
+
+# ================================
+# 5. Evaluate Model
+# ================================
+test_loss, test_acc = model.evaluate(test_ds)
+print("Test accuracy:", test_acc)
+
+# ================================
+# 6. Plot Accuracy/Loss
+# ================================
+plt.figure(figsize=(12, 4))
+
+# Accuracy plot
+plt.subplot(1, 2, 1)
+plt.plot(history.history["accuracy"], label="train acc")
+plt.plot(history.history["val_accuracy"], label="val acc")
+plt.title("Accuracy")
+plt.legend()
+
+# Loss plot
+plt.subplot(1, 2, 2)
+plt.plot(history.history["loss"], label="train loss")
+plt.plot(history.history["val_loss"], label="val loss")
+plt.title("Loss")
+plt.legend()
+
+plt.show()
